@@ -165,6 +165,8 @@
         <path id="gluegen.classpath">
           <pathelement location="${gluegen.jar}" />
           <pathelement location="${antlr.jar}" />
+          <pathelement path="${build}/gluegen" />
+          <pathelement path="${build}/jogl/classes" />
         </path>
 
         <!-- JavaSE combinations -->

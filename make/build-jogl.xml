@@ -256,6 +256,7 @@
         <path id="pipeline.classpath">
           <pathelement location="${gluegen.jar}" />
           <pathelement location="${classes}" />
+          <pathelement path="${build}/gluegen" />
         </path>
 
         <!-- The javadoc dirs. -->
@@ -325,10 +326,33 @@
         <mkdir dir="${obj.jogl}" />
         <mkdir dir="${obj.joglsub}" />
         <mkdir dir="${obj.cgsub}" />
+        <mkdir dir="${build}/gluegen"/>
 
         <!-- Set up Java SE and Java CDC files -->
         <antcall target="setup.javase"  inheritRefs="true" />
         <antcall target="setup.javacdc" inheritRefs="true" />
+    </target>
+
+    <target name="prepare" >
+
+        <!-- eagerly compile classes needed in JOGL's gluegen extensions -->
+        <javac destdir="${classes}"
+               source="${target.sourcelevel}"
+               includes="com/jogamp/gluegen/runtime/opengl/GLExtensionNames.java"
+               includeAntRuntime="false"
+               debug="${javacdebug}" debuglevel="${javacdebuglevel}">
+            <src path="${src.java}" />
+        </javac>
+
+        <!-- JOGL specific gluegen extensions -->
+        <javac destdir="${build}/gluegen"
+               source="1.5"
+               includes="com/sun/gluegen/opengl/**"
+               includeAntRuntime="false"
+               debug="${javacdebug}" debuglevel="${javacdebuglevel}">
+            <classpath path="${gluegen.jar}:${classes}"/>
+            <src path="${src}/gluegen" />
+        </javac>
     </target>
 
     <!--
@@ -1906,7 +1930,7 @@
     <!--
        - Build everything.
       -->
-    <target name="all" description="Build JOGL JAR file(s) and native libraries." depends="init,java.compile,c.build.jogl,build-jars,generate.version.txt" />
+    <target name="all" description="Build JOGL JAR file(s) and native libraries." depends="init,prepare,java.compile,c.build.jogl,build-jars,generate.version.txt" />
 
     <target name="generate.version.txt" depends="init">
         <!-- Create a version.txt file indicating which version we just built -->

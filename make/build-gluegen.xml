@@ -7,8 +7,6 @@
    - The optional.jar that contains the optional ANT tasks must be in the ANT
    - classpath (typically the ant/lib directory).
    -
-   - This build has been tested with ANT 1.5.3 and JOGL 1.1.1.1.
-   -
    - Public targets:
    -   all:  clean and build GlueGen and GlueGen Ant task
    -   clean:  clean all built

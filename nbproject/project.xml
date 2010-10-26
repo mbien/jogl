@@ -53,6 +53,12 @@
                     <location>src/junit</location>
                     <encoding>UTF-8</encoding>
                 </source-folder>
+                <source-folder>
+                    <label>gluegen</label>
+                    <type>java</type>
+                    <location>src/gluegen</location>
+                    <encoding>UTF-8</encoding>
+                </source-folder>
             </folders>
             <ide-actions>
                 <action name="build">
@@ -180,6 +186,10 @@
                         <label>src/junit</label>
                         <location>src/junit</location>
                     </source-folder>
+                    <source-folder style="packages">
+                        <label>gluegen</label>
+                        <location>src/gluegen</location>
+                    </source-folder>
                     <source-file>
                         <location>${ant.script}</location>
                     </source-file>
@@ -210,6 +220,11 @@
                 <unit-tests/>
                 <classpath mode="compile">build/jogl/classes:build/jogl/gensrc/classes:build/newt/classes:build/nativewindow/classes:build/nativewindow/gensrc/classes:build/test/build/classes:${jdk.home}/lib/tools.jar:${ant.core.lib}:${ant.home}/lib/ant-junit.jar:../gluegen/make/lib/antlr.jar:../gluegen/make/lib/junit.jar:../gluegen/build/gluegen-rt.jar</classpath>
                 <built-to>bin</built-to>
+                <source-level>1.5</source-level>
+            </compilation-unit>
+            <compilation-unit>
+                <package-root>src/gluegen</package-root>
+                <classpath mode="compile">build/jogl/classes:build/jogl/gensrc/classes:../gluegen/build/gluegen.jar</classpath>
                 <source-level>1.5</source-level>
             </compilation-unit>
         </java-data>
