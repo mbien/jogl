@@ -26,6 +26,7 @@ spath=`dirname $0`
 . $spath/setenv-jogl.sh $bdir JOGL_ALL
 
 MOSX=0
+MOSX_MT=0
 uname -a | grep -i Darwin && MOSX=1
 if [ $MOSX -eq 1 ] ; then
     MOSX_MT=1
@@ -50,18 +51,20 @@ function jrun() {
     #D_ARGS="-Djogl.debug.GLContext -Djogl.debug.ExtensionAvailabilityCache"
     #D_ARGS="-Djogl.debug.GLContext -Djogl.debug.GLProfile -Djogl.debug.GLDrawable"
     #D_ARGS="-Djogl.debug.GLProfile"
-    #D_ARGS="-Dnewt.debug.Window -Djogamp.common.utils.locks.Lock.timeout=600000 -Djogl.debug.Animator"
     # D_ARGS="-Dnewt.debug.EDT -Dnativewindow.debug.ToolkitLock.TraceLock -Dnativewindow.debug.NativeWindow"
     #D_ARGS="-Dnewt.debug.Window -Dnewt.debug.Display -Dnewt.debug.EDT"
     # D_ARGS="-Dnewt.debug.EDT -Dnativewindow.debug.ToolkitLock.TraceLock -Dnativewindow.debug.X11Util.TraceDisplayLifecycle=true"
     #D_ARGS="-Djogamp.common.utils.locks.Lock.timeout=600000 -Djogamp.debug.Lock -Djogamp.debug.Lock.TraceLock"
+    #D_ARGS="-Djogamp.common.utils.locks.Lock.timeout=1000 -Djogamp.debug.Lock -Djogamp.debug.Lock.TraceLock"
     # D_ARGS="-Dnewt.debug.Window -Dnewt.debug.EDT -Dnewt.debug.Display "
     #D_ARGS="-Dnewt.debug.EDT -Djogamp.common.utils.locks.Lock.timeout=600000 -Djogl.debug.Animator -Dnewt.debug.Display -Dnewt.debug.Screen"
+    #D_ARGS="-Dnewt.debug.Window -Djogamp.common.utils.locks.Lock.timeout=600000 -Djogl.debug.Animator"
+    #D_ARGS="-Djogl.debug.Animator -Dnewt.debug=all"
     #D_ARGS="-Dnewt.debug.EDT -Dnewt.debug.Display -Dnativewindow.debug.X11Util -Djogl.debug.GLDrawable -Djogl.debug.GLCanvas"
     #D_ARGS="-Djogl.debug.GLContext -Dnewt.debug=all"
     #D_ARGS="-Dnewt.debug.Screen -Dnewt.debug.EDT -Djogamp.debug.Lock"
     #D_ARGS="-Dnewt.debug.EDT"
-    D_ARGS="-Djogl.debug=all -Dnativewindow.debug=all -Dnewt.debug=all"
+    #D_ARGS="-Djogl.debug=all -Dnativewindow.debug=all -Dnewt.debug=all"
     #D_ARGS="-Djogl.debug=all -Dnewt.debug=all"
     #D_ARGS="-Dnewt.debug.Window -Dnewt.debug.Display -Dnewt.debug.EDT -Djogl.debug.GLContext"
     #D_ARGS="-Dnewt.debug=all"
@@ -132,6 +135,7 @@ function testawtmt() {
 #testawt -Djava.awt.headless=true com.jogamp.opengl.test.junit.newt.TestGLWindows01NEWT
 #testawt com.jogamp.opengl.test.junit.newt.TestGLWindows02NEWTAnimated
 #testnoawt com.jogamp.opengl.test.junit.jogl.swt.TestSWT01GLn $*
+testnoawt com.jogamp.opengl.test.junit.jogl.swt.TestSWT02GLn $*
 
 
 #
@@ -151,7 +155,7 @@ function testawtmt() {
 #testawt com.jogamp.opengl.test.junit.jogl.caps.TestMultisampleAWT
 #testawt com.jogamp.opengl.test.junit.jogl.awt.TestBug461OffscreenSupersamplingSwingAWT
 #testawt com.jogamp.opengl.test.junit.jogl.texture.TestGrayTextureFromFileAWTBug417
-testawtmt com.jogamp.opengl.test.junit.jogl.swt.TestSWTAWT01GLn $*
+#testawtmt com.jogamp.opengl.test.junit.jogl.swt.TestSWTAWT01GLn $*
 
 #
 # newt.awt (testawt)
@@ -186,6 +190,11 @@ testawtmt com.jogamp.opengl.test.junit.jogl.swt.TestSWTAWT01GLn $*
 #testawt $*
 
 #testnoawt com.jogamp.opengl.test.junit.jogl.offscreen.TestOffscreen02BitmapNEWT
+#
+
+#testawt com.jogamp.opengl.test.junit.newt.TestFocus01SwingAWTRobot
+#testawt com.jogamp.opengl.test.junit.newt.TestFocus02SwingAWTRobot
+#testawt com.jogamp.opengl.test.junit.jogl.acore.TestSharedContextListAWT $*
 
 $spath/count-edt-start.sh java-run.log
 
