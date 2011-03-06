@@ -39,10 +39,10 @@
 
 package jogamp.opengl;
 
-import java.util.List;
-import java.util.ArrayList;
 import javax.media.opengl.*;
 import com.jogamp.common.util.IntIntHashMap;
+import java.nio.IntBuffer;
+import java.util.LinkedList;
 
 /**
  * Tracks as closely as possible OpenGL states.
@@ -50,34 +50,47 @@ import com.jogamp.common.util.IntIntHashMap;
  * <p>
  * Currently supported states: PixelStorei
  */
-
 public class GLStateTracker {
-  private static final boolean DEBUG = Debug.debug("GLStateTracker");
+    
+//  private static final boolean DEBUG = Debug.debug("GLStateTracker");
 
   private volatile boolean enabled = true;
 
   private IntIntHashMap pixelStateMap;
+  private final LinkedList<SavedState> stack; // would be used as Deque interface in jdk6
 
-  static class SavedState {
-    SavedState() {
-        this.pixelStateMap = null;
-    }
-    void putPixelStateMap(IntIntHashMap pixelStateMap) {
-        this.pixelStateMap = new IntIntHashMap();
+  private static class SavedState {
+
+    /**
+     * Empty pixel-store state
+     */ 
+    private IntIntHashMap pixelStateMap;
+    
+    /**
+     * set (client) pixel-store state
+     */ 
+    private void putPixelStateMap(IntIntHashMap pixelStateMap) {
+        //TODO add copy constructor to primitive hashmaps
+        this.pixelStateMap = new IntIntHashMap(Math.max(16, pixelStateMap.size()));
         this.pixelStateMap.setKeyNotFoundValue(-1);
         this.pixelStateMap.putAll(pixelStateMap);
     }
-    IntIntHashMap getPixelStateMap() { return pixelStateMap; }
+    
+    /**
+     * get (client) pixel-store state
+     */ 
+    private IntIntHashMap getPixelStateMap() { return pixelStateMap; }
 
-    private IntIntHashMap pixelStateMap;
-    // private Map otherStateMap;
   }
-  private List/*<SavedState>*/ stack = new ArrayList();
+  
 
   public GLStateTracker() {
-    pixelStateMap = new IntIntHashMap();
+    
+    pixelStateMap = new IntIntHashMap(32);
     pixelStateMap.setKeyNotFoundValue(-1);
     resetStates();
+    
+    stack = new LinkedList<SavedState>();
   }
 
   public void clearStates(boolean enable) {
@@ -108,7 +121,7 @@ public class GLStateTracker {
 
   /** @return true if found in our map, otherwise false, 
    *  which forces the caller to query GL. */
-  public boolean getInt(int pname, java.nio.IntBuffer params, int dummy) {
+  public boolean getInt(int pname, IntBuffer params, int dummy) {
     if(enabled) {
         int value = pixelStateMap.get(pname);
         if(0 <= value) {
@@ -127,39 +140,38 @@ public class GLStateTracker {
 
   public void pushAttrib(int flags) {
     if(enabled) {
-        SavedState state = new SavedState();
+        SavedState state = new SavedState(); // empty-slot
         if( 0 != (flags&GL2.GL_CLIENT_PIXEL_STORE_BIT) ) {
+            // save client pixel-store state
             state.putPixelStateMap(pixelStateMap);
         }
-        stack.add(0, state);
+        stack.addFirst(state); // push
     }
   }
 
   public void popAttrib() {
     if(enabled) {
-        if(stack.size()==0) {
+        if(stack.isEmpty()) {
             throw new GLException("stack contains no elements");
         }
-        SavedState state = (SavedState) stack.remove(0);
+        SavedState state = stack.pollFirst(); // pop
         if(null==state) {
             throw new GLException("null stack element (remaining stack size "+stack.size()+")");
         }
 
-        IntIntHashMap pixelStateMapNew = new IntIntHashMap();
-        pixelStateMapNew.setKeyNotFoundValue(-1);
         if ( null != state.getPixelStateMap() ) {
-            pixelStateMapNew.putAll(state.getPixelStateMap());
-        }
-        pixelStateMap = pixelStateMapNew;
+            // use pulled client pixel-store state from stack
+            pixelStateMap = state.getPixelStateMap();
+        } // else: empty-slot, not pushed by GL_CLIENT_PIXEL_STORE_BIT        
     }
   }
 
-  public void resetStates() {
+  private void resetStates() {
     pixelStateMap.clear();
 
     pixelStateMap.put(GL.GL_PACK_ALIGNMENT,          4);
-    pixelStateMap.put(GL2GL3.GL_PACK_SWAP_BYTES,     0 /* GL_FALSE */);
-    pixelStateMap.put(GL2GL3.GL_PACK_LSB_FIRST,      0 /* GL_FALSE */);
+    pixelStateMap.put(GL2GL3.GL_PACK_SWAP_BYTES,     GL.GL_FALSE);
+    pixelStateMap.put(GL2GL3.GL_PACK_LSB_FIRST,      GL.GL_FALSE);
     pixelStateMap.put(GL2GL3.GL_PACK_ROW_LENGTH,     0);
     pixelStateMap.put(GL2GL3.GL_PACK_SKIP_ROWS,      0);
     pixelStateMap.put(GL2GL3.GL_PACK_SKIP_PIXELS,    0);
@@ -167,8 +179,8 @@ public class GLStateTracker {
     pixelStateMap.put(GL2GL3.GL_PACK_SKIP_IMAGES,    0);
 
     pixelStateMap.put(GL.GL_UNPACK_ALIGNMENT,        4);
-    pixelStateMap.put(GL2GL3.GL_UNPACK_SWAP_BYTES,   0 /* GL_FALSE */);
-    pixelStateMap.put(GL2GL3.GL_UNPACK_LSB_FIRST,    0 /* GL_FALSE */);
+    pixelStateMap.put(GL2GL3.GL_UNPACK_SWAP_BYTES,   GL.GL_FALSE);
+    pixelStateMap.put(GL2GL3.GL_UNPACK_LSB_FIRST,    GL.GL_FALSE);
     pixelStateMap.put(GL2GL3.GL_UNPACK_ROW_LENGTH,   0);
     pixelStateMap.put(GL2GL3.GL_UNPACK_SKIP_ROWS,    0);
     pixelStateMap.put(GL2GL3.GL_UNPACK_SKIP_PIXELS,  0);

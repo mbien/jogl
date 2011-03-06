@@ -1,11 +1,21 @@
 
 package com.jogamp.opengl.test.junit.jogl.demos.gl2.gears;
 
-import javax.media.opengl.*;
+import javax.media.opengl.GL2;
+import javax.media.opengl.GLAutoDrawable;
+import javax.media.opengl.GLEventListener;
+import javax.media.opengl.GLProfile;
+import com.jogamp.opengl.util.Animator;
 
-import com.jogamp.newt.event.*;
-import com.jogamp.newt.event.awt.*;
 import com.jogamp.newt.Window;
+import com.jogamp.newt.event.KeyAdapter;
+import com.jogamp.newt.event.KeyEvent;
+import com.jogamp.newt.event.KeyListener;
+import com.jogamp.newt.event.MouseAdapter;
+import com.jogamp.newt.event.MouseEvent;
+import com.jogamp.newt.event.MouseListener;
+import com.jogamp.newt.event.awt.AWTKeyAdapter;
+import com.jogamp.newt.event.awt.AWTMouseAdapter;
 
 /**
  * Gears.java <BR>
@@ -30,7 +40,7 @@ public class Gears implements GLEventListener {
   public Gears() {
     this.swapInterval = 1;
   }
-
+  
   public void setGears(int g1, int g2, int g3) {
       gear1 = g1;
       gear2 = g2;
@@ -53,11 +63,17 @@ public class Gears implements GLEventListener {
   public int getGear3() { return gear3; }
 
   public void init(GLAutoDrawable drawable) {
-    System.err.println("Gears: Init");
+    System.err.println("Gears: Init: "+drawable);
     // Use debug pipeline
     // drawable.setGL(new DebugGL(drawable.getGL()));
 
     GL2 gl = drawable.getGL().getGL2();
+
+    System.err.println("Chosen GLCapabilities: " + drawable.getChosenGLCapabilities());
+    System.err.println("INIT GL IS: " + gl.getClass().getName());
+    System.err.println("GL_VENDOR: " + gl.glGetString(GL2.GL_VENDOR));
+    System.err.println("GL_RENDERER: " + gl.glGetString(GL2.GL_RENDERER));
+    System.err.println("GL_VERSION: " + gl.glGetString(GL2.GL_VERSION));
 
     float pos[] = { 5.0f, 5.0f, 10.0f, 0.0f };
     float red[] = { 0.8f, 0.1f, 0.0f, 0.7f };
