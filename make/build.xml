@@ -12,7 +12,7 @@
 
     <target name="all.but-archives" description="Build nativewindow, jogl and newt projects, incl. all junit tests " depends="init,build.nativewindow,build.jogl,build.newt,test.compile,one.dir,tag.build" />
 
-    <target name="all.ide" description="Build nativewindow, jogl and newt projects, including all junit tests, but don't copy libs or JARs or tag the build" depends="init,build.nativewindow,build.jogl,build.newt,test.compile" />
+    <target name="all.ide" description="Build nativewindow, jogl and newt projects, including all junit tests, but don't copy libs or JARs or tag the build" depends="init,build.nativewindow,build.jogl,build.newt,test.compile,one.dir" />
 
     <target name="test.compile">
       <ant antfile="build-test.xml" target="test.compile" inheritRefs="true" inheritAll="true"/>
@@ -47,8 +47,11 @@
         <ant antfile="${nativewindow.build.xml}" dir="${nativewindow.make}" target="clean" inheritRefs="true" inheritAll="true"/>
         <ant antfile="${jogl.build.xml}" dir="${jogl.make}" target="clean" inheritRefs="true" inheritAll="true"/>
         <ant antfile="${newt.build.xml}" dir="${newt.make}" target="clean" inheritRefs="true" inheritAll="true"/>
+        <ant antfile="${newt.build.xml}" dir="${newt.make}" target="clean" inheritRefs="true" inheritAll="true"/>
+        <ant antfile="build-test.xml"                       target="clean" inheritRefs="true" inheritAll="true"/>
         <delete includeEmptyDirs="true" quiet="true" failonerror="false">
             <fileset dir="${build}" />
+            <fileset dir="." includes="*.tga" />
         </delete>
     </target>        
 

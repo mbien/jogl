@@ -116,6 +116,9 @@ public class FPSAnimator extends AnimatorBase {
     }
 
     private void startTask() {
+    	if(null != task) {
+    		return;
+    	}
         long delay = (long) (1000.0f / (float) fps);
         task = new TimerTask() {
             public void run() {
@@ -161,11 +164,18 @@ public class FPSAnimator extends AnimatorBase {
         stateSync.lock();
         try {
             shouldRun = false;
-            task.cancel();
-            task = null;
-            timer.cancel();
-            timer = null;
+            if(null != task) {
+	            task.cancel();
+	            task = null;
+            }
+            if(null != timer) {
+	            timer.cancel();
+	            timer = null;
+            }
             animThread = null;
+            try {
+                Thread.sleep(20); // ~ 1/60 hz wait, since we can't ctrl stopped threads
+            } catch (InterruptedException e) { }
         } finally {
             stateSync.unlock();
         }
@@ -179,9 +189,14 @@ public class FPSAnimator extends AnimatorBase {
         stateSync.lock();
         try {
             shouldRun = false;
-            task.cancel();
-            task = null;
+            if(null != task) {
+	            task.cancel();
+	            task = null;
+            }
             animThread = null;
+            try {
+                Thread.sleep(20); // ~ 1/60 hz wait, since we can't ctrl stopped threads
+            } catch (InterruptedException e) { }
         } finally {
             stateSync.unlock();
         }

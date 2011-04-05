@@ -50,7 +50,6 @@ import javax.media.opengl.GLProfile;
 
 import jogamp.nativewindow.windows.GDI;
 import jogamp.nativewindow.windows.PIXELFORMATDESCRIPTOR;
-import jogamp.opengl.GLContextImpl;
 import jogamp.opengl.GLGraphicsConfigurationUtil;
 
 public class WindowsWGLGraphicsConfiguration extends DefaultGraphicsConfiguration implements Cloneable {
@@ -61,14 +60,15 @@ public class WindowsWGLGraphicsConfiguration extends DefaultGraphicsConfiguratio
     protected static final int MAX_ATTRIBS  = 256;
 
     private GLCapabilitiesChooser chooser;
-    private boolean isChosen = false;
+    private boolean isDetermined = false;
+    private boolean isExternal = false;
 
     WindowsWGLGraphicsConfiguration(AbstractGraphicsScreen screen, 
                                     GLCapabilitiesImmutable capsChosen, GLCapabilitiesImmutable capsRequested,
                                     GLCapabilitiesChooser chooser) {
         super(screen, capsChosen, capsRequested);
         this.chooser=chooser;
-        this.isChosen = false;
+        this.isDetermined = false;
     }
 
     WindowsWGLGraphicsConfiguration(AbstractGraphicsScreen screen,
@@ -79,7 +79,7 @@ public class WindowsWGLGraphicsConfiguration extends DefaultGraphicsConfiguratio
     }
 
 
-    static WindowsWGLGraphicsConfiguration createFromCurrent(GLDrawableFactory _factory, long hdc, int pfdID,
+    static WindowsWGLGraphicsConfiguration createFromExternal(GLDrawableFactory _factory, long hdc, int pfdID,
                                                              GLProfile glp, AbstractGraphicsScreen screen, boolean onscreen)
     {
         if(_factory==null) {
@@ -111,7 +111,9 @@ public class WindowsWGLGraphicsConfiguration extends DefaultGraphicsConfiguratio
                                   ", pfdID "+pfdID+", onscreen "+onscreen+", hasARB "+hasARB);
         }
 
-        return new WindowsWGLGraphicsConfiguration(screen, caps, caps);
+        WindowsWGLGraphicsConfiguration cfg = new WindowsWGLGraphicsConfiguration(screen, caps, caps);
+        cfg.markExternal();
+        return cfg;
     }
 
     public Object clone() {
@@ -128,6 +130,7 @@ public class WindowsWGLGraphicsConfiguration extends DefaultGraphicsConfiguratio
      * @param pfIDs optional pool of preselected PixelFormat IDs, maybe null for unrestricted selection
      *
      * @see #isDetermined()
+     * @see #isExternal()
      */
     public final void updateGraphicsConfiguration(GLDrawableFactory factory, NativeSurface ns, int[] pfIDs) {
         WindowsWGLGraphicsConfigurationFactory.updateGraphicsConfiguration(chooser, factory, ns, pfIDs);
@@ -148,18 +151,58 @@ public class WindowsWGLGraphicsConfiguration extends DefaultGraphicsConfiguratio
         WindowsWGLGraphicsConfigurationFactory.preselectGraphicsConfiguration(chooser, factory, device, this, pfdIDs);
     }
 
+    /**
+     * Sets the hdc's PixelFormat, this configuration's capabilities and marks it as determined.
+     */
+    final void setPixelFormat(long hdc, WGLGLCapabilities caps) {
+        if (0 == hdc) {
+            throw new GLException("Error: HDC is null");
+        }
+	
+        if (!GDI.SetPixelFormat(hdc, caps.getPFDID(), caps.getPFD())) {
+            throw new GLException("Unable to set pixel format " + caps +
+                                  " for device context " + toHexString(hdc) +
+                                  ": error code " + GDI.GetLastError());
+        }
+        if (DEBUG) {
+            System.err.println("!!! setPixelFormat (ARB): hdc "+toHexString(hdc) +", "+caps);
+        }    	
+        setCapsPFD(caps);
+    }
+    
+    /**
+     * Only sets this configuration's capabilities and marks it as determined,
+     * the actual pixelformat is not set.
+     */
     final void setCapsPFD(WGLGLCapabilities caps) {
         setChosenCapabilities(caps);
-        this.isChosen=true;
+        this.isDetermined = true;
         if (DEBUG) {
             System.err.println("*** setCapsPFD: "+caps);
         }
     }
 
-    public final boolean isDetermined() { return isChosen; }
-    public final PIXELFORMATDESCRIPTOR getPixelFormat()   { return isChosen ? ((WGLGLCapabilities)capabilitiesChosen).getPFD() : null; }
-    public final int getPixelFormatID() { return isChosen ? ((WGLGLCapabilities)capabilitiesChosen).getPFDID() : 0; }
-    public final boolean isChoosenByARB() { return isChosen ? ((WGLGLCapabilities)capabilitiesChosen).isSetByARB() : false; }
+    /**
+     * External configuration's HDC pixelformat shall not be modified
+     */
+    public final boolean isExternal() { return isExternal; }
+    
+    final void markExternal() {
+        this.isExternal=true;
+    }
+    
+    /**
+     * Determined configuration states set target capabilties via {@link #setCapsPFD(WGLGLCapabilities)},
+     * but does not imply a set pixelformat.
+     * 
+     * @see #setPixelFormat(long, WGLGLCapabilities) 
+     * @see #setCapsPFD(WGLGLCapabilities)
+     */
+    public final boolean isDetermined() { return isDetermined; }
+    
+    public final PIXELFORMATDESCRIPTOR getPixelFormat()   { return isDetermined ? ((WGLGLCapabilities)capabilitiesChosen).getPFD() : null; }
+    public final int getPixelFormatID() { return isDetermined ? ((WGLGLCapabilities)capabilitiesChosen).getPFDID() : 0; }
+    public final boolean isChoosenByARB() { return isDetermined ? ((WGLGLCapabilities)capabilitiesChosen).isSetByARB() : false; }
 
     static int fillAttribsForGeneralWGLARBQuery(WindowsWGLDrawableFactory.SharedResource sharedResource, int[] iattributes) {
         int niattribs = 0;
@@ -187,15 +230,18 @@ public class WindowsWGLGraphicsConfiguration extends DefaultGraphicsConfiguratio
             iattributes[niattribs++] = WGLExt.WGL_SAMPLE_BUFFERS_ARB;
             iattributes[niattribs++] = WGLExt.WGL_SAMPLES_ARB;
         }
+            
         if(sharedResource.hasARBPBuffer()) {
-            // pbo float buffer
-            iattributes[niattribs++] = WGLExt.WGL_PIXEL_TYPE_ARB;      // ati
-            iattributes[niattribs++] = WGLExt.WGL_FLOAT_COMPONENTS_NV; // nvidia
+            WindowsWGLContext sharedCtx = sharedResource.getContext();
+            if(null != sharedCtx && sharedCtx.isExtensionAvailable(WindowsWGLDrawableFactory.WGL_NV_float_buffer)) {
+                // pbo float buffer
+                iattributes[niattribs++] = WGLExt.WGL_FLOAT_COMPONENTS_NV; // nvidia
+            }
         }
 
         return niattribs;
     }
-
+    
     static boolean wglARBPFIDValid(WindowsWGLContext sharedCtx, long hdc, int pfdID) {
         int[] in = new int[1];
         int[] out = new int[1];
@@ -432,6 +478,7 @@ public class WindowsWGLGraphicsConfiguration extends DefaultGraphicsConfiguratio
         boolean rect     = caps.getPbufferRenderToTextureRectangle();
         boolean useFloat = caps.getPbufferFloatingPointBuffers();
         boolean ati      = false;
+        boolean nvidia   = false;
         if (pbuffer && sharedResource.hasARBPBuffer()) {
           // Check some invariants and set up some state
           if (rect && !rtt) {
@@ -446,21 +493,21 @@ public class WindowsWGLGraphicsConfiguration extends DefaultGraphicsConfiguratio
           }
 
           if (useFloat) {
-            if (!sharedCtx.isExtensionAvailable("WGL_ATI_pixel_format_float") &&
-                !sharedCtx.isExtensionAvailable("WGL_NV_float_buffer")) {
-              throw new GLException("Floating-point pbuffers not supported by this hardware");
-            }
-
             // Prefer NVidia extension over ATI
-            if (sharedCtx.isExtensionAvailable("WGL_NV_float_buffer")) {
-              ati = false;
+            nvidia = sharedCtx.isExtensionAvailable(WindowsWGLDrawableFactory.WGL_NV_float_buffer);
+            if(nvidia) {
               floatMode[0] = GLPbuffer.NV_FLOAT;
             } else {
-              ati = true;
-              floatMode[0] = GLPbuffer.ATI_FLOAT;
+                ati = sharedCtx.isExtensionAvailable("WGL_ATI_pixel_format_float");
+                if(ati) {
+                    floatMode[0] = GLPbuffer.ATI_FLOAT;
+                } else {
+                    throw new GLException("Floating-point pbuffers not supported by this hardware");                    
+                }
             }
+            
             if (DEBUG) {
-              System.err.println("Using " + (ati ? "ATI" : "NVidia") + " floating-point extension");
+              System.err.println("Using " + (ati ? "ATI" : ( nvidia ? "NVidia" : "NONE" ) ) + " floating-point extension");
             }
           }
 
@@ -483,7 +530,7 @@ public class WindowsWGLGraphicsConfiguration extends DefaultGraphicsConfiguratio
             }
           }
 
-          if (useFloat && !ati) {
+          if (useFloat && nvidia) {
             iattributes[niattribs++] = WGLExt.WGL_FLOAT_COMPONENTS_NV;
             iattributes[niattribs++] = GL.GL_TRUE;
           }
@@ -491,6 +538,7 @@ public class WindowsWGLGraphicsConfiguration extends DefaultGraphicsConfiguratio
           if (rtt) {
             if (useFloat) {
               assert(!ati);
+              assert(nvidia);
               if (!rect) {
                 throw new GLException("Render-to-floating-point-texture only supported on NVidia hardware with render-to-texture-rectangle");
               }

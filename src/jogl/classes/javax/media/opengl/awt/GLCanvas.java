@@ -710,7 +710,7 @@ public class GLCanvas extends Canvas implements AWTGLAutoDrawable, WindowClosing
 
   public GLCapabilitiesImmutable getRequestedGLCapabilities() {
     if (awtConfig == null) {
-        throw new GLException("No AWTGraphicsConfiguration: "+this);
+        return capsReqUser;
     }
 
     return (GLCapabilitiesImmutable)awtConfig.getRequestedCapabilities();
@@ -745,12 +745,15 @@ public class GLCanvas extends Canvas implements AWTGLAutoDrawable, WindowClosing
 
   @Override
   public String toString() {
+	final int dw = (null!=drawable) ? drawable.getWidth() : -1;
+	final int dh = (null!=drawable) ? drawable.getHeight() : -1;
+	
     return "AWT-GLCanvas[Realized "+isRealized()+
                           ",\n\t"+((null!=drawable)?drawable.getClass().getName():"null-drawable")+                         
                           ",\n\tRealized "+isRealized()+
                           ",\n\tFactory   "+getFactory()+
                           ",\n\thandle    0x"+Long.toHexString(getHandle())+
-                          ",\n\tDrawable size "+drawable.getWidth()+"x"+drawable.getHeight()+
+                          ",\n\tDrawable size "+dw+"x"+dh+
                           ",\n\tAWT pos "+getX()+"/"+getY()+", size "+getWidth()+"x"+getHeight()+
                           ",\n\tvisible "+isVisible()+
                           ",\n\t"+awtConfig+"]";

@@ -44,6 +44,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import javax.media.nativewindow.AbstractGraphicsDevice;
 import jogamp.opengl.Debug;
+import jogamp.opengl.GLContextImpl;
 
 /** Abstraction for an OpenGL rendering context. In order to perform
     OpenGL rendering, a context must be "made current" on the current
@@ -58,8 +59,11 @@ import jogamp.opengl.Debug;
     abstraction provides a stable object which clients can use to
     refer to a given context. */
 public abstract class GLContext {
-  protected static final boolean DEBUG0 = Debug.debug("GLContext");
-
+  /** Reflects property jogl.debug.DebugGL. If true, the debug pipeline is enabled at context creation. */
+  public final static boolean DEBUG_GL = Debug.debug("DebugGL");
+  /** Reflects property jogl.debug.TraceGL. If true, the trace pipeline is enabled at context creation. */
+  public final static boolean TRACE_GL = Debug.debug("TraceGL");
+  
   /** Indicates that the context was not made current during the last call to {@link #makeCurrent makeCurrent}. */
   public static final int CONTEXT_NOT_CURRENT = 0;
   /** Indicates that the context was made current during the last call to {@link #makeCurrent makeCurrent}. */
@@ -601,7 +605,7 @@ public abstract class GLContext {
               throw new InternalError("Already set: "+devKey);
           }
           deviceVersionsAvailableSet.add(devKey);
-          if (DEBUG0) {
+          if (GLContextImpl.DEBUG) {
             String msg = getThreadName() + ": !!! createContextARB: SET mappedVersionsAvailableSet "+devKey;
             // Throwable t = new Throwable(msg);
             // t.printStackTrace();
