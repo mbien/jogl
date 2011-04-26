@@ -2,6 +2,8 @@
 package com.jogamp.opengl.util;
 
 import com.jogamp.common.util.*;
+import com.jogamp.opengl.util.glsl.ShaderState;
+
 import javax.media.opengl.*;
 import javax.media.opengl.fixedfunc.*;
 import java.nio.*;
@@ -35,8 +37,8 @@ public class ImmModeSink {
    * a ShaderState must be current, using ShaderState.glUseProgram().
    *
    * @see #draw(GL, boolean)
-   * @see com.jogamp.opengl.util.glsl.ShaderState#glUseProgram(GL2ES2, boolean)
-   * @see com.jogamp.opengl.util.glsl.ShaderState#getCurrent()
+   * @see com.jogamp.opengl.util.glsl.ShaderState#useProgram(GL2ES2, boolean)
+   * @see com.jogamp.opengl.util.glsl.ShaderState#getCurrentShaderState()
    */
   public static ImmModeSink createGLSL(GL gl, int glBufferUsage, int initialSize,
                                        int vComps, int vDataType,
@@ -745,11 +747,11 @@ public class ImmModeSink {
   }
 
   public void enableBufferGLSL(GL gl, boolean enable) {
-    GL2ES2 glsl = gl.getGL2ES2();
-    com.jogamp.opengl.util.glsl.ShaderState st = com.jogamp.opengl.util.glsl.ShaderState.getCurrent();
+    ShaderState st = ShaderState.getShaderState(gl);
     if(null==st) {
-        throw new GLException("No ShaderState current");
-    }
+        throw new GLException("No ShaderState in "+gl);
+    }      
+    GL2ES2 glsl = gl.getGL2ES2();
  
     if(enable) {
         glsl.glBindBuffer(GL.GL_ARRAY_BUFFER, vboName);
@@ -760,35 +762,35 @@ public class ImmModeSink {
         }
 
         if(vComps>0) {
-           st.glEnableVertexAttribArray(glsl, vArrayData.getName());
-           st.glVertexAttribPointer(glsl, vArrayData);
+           st.enableVertexAttribArray(glsl, vArrayData);
+           st.vertexAttribPointer(glsl, vArrayData);
         }
         if(cComps>0) {
-           st.glEnableVertexAttribArray(glsl, cArrayData.getName());
-           st.glVertexAttribPointer(glsl, cArrayData);
+           st.enableVertexAttribArray(glsl, cArrayData);
+           st.vertexAttribPointer(glsl, cArrayData);
         }
         if(nComps>0) {
-           st.glEnableVertexAttribArray(glsl, nArrayData.getName());
-           st.glVertexAttribPointer(glsl, nArrayData);
+           st.enableVertexAttribArray(glsl, nArrayData);
+           st.vertexAttribPointer(glsl, nArrayData);
         }
         if(tComps>0) {
-           st.glEnableVertexAttribArray(glsl, tArrayData.getName());
-           st.glVertexAttribPointer(glsl, tArrayData);
+           st.enableVertexAttribArray(glsl, tArrayData);
+           st.vertexAttribPointer(glsl, tArrayData);
         }
 
         glsl.glBindBuffer(GL.GL_ARRAY_BUFFER, 0);
     } else {
         if(vComps>0) {
-           st.glDisableVertexAttribArray(glsl, vArrayData.getName());
+           st.disableVertexAttribArray(glsl, vArrayData);
         }
         if(cComps>0) {
-           st.glDisableVertexAttribArray(glsl, cArrayData.getName());
+           st.disableVertexAttribArray(glsl, cArrayData);
         }
         if(nComps>0) {
-           st.glDisableVertexAttribArray(glsl, nArrayData.getName());
+           st.disableVertexAttribArray(glsl, nArrayData);
         }
         if(tComps>0) {
-           st.glDisableVertexAttribArray(glsl, tArrayData.getName());
+           st.disableVertexAttribArray(glsl, tArrayData);
         }
     }
   }
@@ -860,26 +862,26 @@ public class ImmModeSink {
         buffer.flip();
 
         if(vComps>0) {
-            vArrayData = GLArrayDataWrapper.createFixed(gl, GLPointerFunc.GL_VERTEX_ARRAY, vComps, vDataType, false,
-                                                        0, vertexArray, 0, vOffset);
+            vArrayData = GLArrayDataWrapper.createFixed(GLPointerFunc.GL_VERTEX_ARRAY, vComps, vDataType, false, 0,
+                                                        vertexArray, 0, vOffset, GL.GL_STATIC_DRAW);
         } else {
             vArrayData = null;
         }
         if(cComps>0) {
-            cArrayData = GLArrayDataWrapper.createFixed(gl, GLPointerFunc.GL_COLOR_ARRAY, cComps, cDataType, false,
-                                                        0, colorArray, 0, cOffset);
+            cArrayData = GLArrayDataWrapper.createFixed(GLPointerFunc.GL_COLOR_ARRAY, cComps, cDataType, false, 0,
+                                                        colorArray, 0, cOffset, GL.GL_STATIC_DRAW);
         } else {
             cArrayData = null;
         }
         if(nComps>0) {
-            nArrayData = GLArrayDataWrapper.createFixed(gl, GLPointerFunc.GL_NORMAL_ARRAY, nComps, nDataType, false,
-                                                        0, normalArray, 0, nOffset);
+            nArrayData = GLArrayDataWrapper.createFixed(GLPointerFunc.GL_NORMAL_ARRAY, nComps, nDataType, false, 0,
+                                                        normalArray, 0, nOffset, GL.GL_STATIC_DRAW);
         } else {
             nArrayData = null;
         }
         if(tComps>0) {
-            tArrayData = GLArrayDataWrapper.createFixed(gl, GLPointerFunc.GL_TEXTURE_COORD_ARRAY, tComps, tDataType, false,
-                                                        0, textCoordArray, 0, tOffset);
+            tArrayData = GLArrayDataWrapper.createFixed(GLPointerFunc.GL_TEXTURE_COORD_ARRAY, tComps, tDataType, false, 0,
+                                                        textCoordArray, 0, tOffset, GL.GL_STATIC_DRAW);
         } else {
             tArrayData = null;
         }

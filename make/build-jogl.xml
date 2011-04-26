@@ -1217,6 +1217,8 @@
         <condition property="c.compiler.use-debug"><istrue value="${c.compiler.debug}"/></condition>
 
         <patternset id="c.src.files.jogl.desktop">
+          <include name="${rootrel.src.c}/JoglCommon.c"/>
+          <include name="${rootrel.src.c}/GLDebugMessageHandler.c"/>
           <include name="${rootrel.src.c}/macosx/MacOSXCustomCGLCode.c" if="isOSX"/>
           <include name="${rootrel.src.c}/macosx/MacOSXWindowSystemInterface.m" if="isOSX"/>
           <include name="${rootrel.src.c}/macosx/ContextUpdater.m" if="isOSX"/>
@@ -1343,6 +1345,7 @@
     </target>
 
     <target name="c.build.jogl.prepare" depends="c.build.jogl.prepare.openMAX">
+      <javah destdir="${build.jogl}/gensrc/native/jogl" classpath="${classes}" class="jogamp.opengl.GLDebugMessageHandler" />
       <!-- Generate the waveout Mixer header -->
       <!-- FIXME: this is temporary until we move this to another workspace -->
       <!--javah destdir="${build.jogl}/gensrc/native/jogl" classpath="${classes}" class="com.jogamp.audio.windows.waveout.Mixer" /-->
@@ -1396,7 +1399,7 @@
     <!--
        - Build the jogl.jar files.
       -->
-    <target name="build-jars-dependset" depends="gluegen.cpptasks.detect.os,build-jars-javase" >
+    <target name="build-jars-dependset" depends="init,gluegen.cpptasks.detect.os" >
         <dependset>
             <srcfileset dir="${src.java}"
                      includes="${java.part.util.fixedfuncemu.shadercode} ${java.part.util.graph.shadercode} ${java.part.util.graph.fonts}"/>
@@ -1404,7 +1407,7 @@
                      includes="${jogl.all.jar} ${jogl.all-noawt.jar} ${jogl.util.jar} ${jogl.util.fixedfuncemu.jar}" />
         </dependset>
     </target>
-    <target name="build-jars" depends="build-jars-dependset" />
+    <target name="build-jars" depends="build-jars-dependset,build-jars-javase" />
 
     <target name="setup-manifestfile" depends="common.init">
         <property name="manifestfile" value="joglversion"/>
@@ -1490,6 +1493,10 @@
             <fileset dir="${src.java}"
                      includes="${java.part.util.fixedfuncemu.shadercode} ${java.part.util.graph.shadercode} ${java.part.util.graph.fonts}"/>
         </jar>
+        <copy todir="${classes}">
+            <fileset dir="${src.java}"
+                     includes="${java.part.util.fixedfuncemu.shadercode} ${java.part.util.graph.shadercode} ${java.part.util.graph.fonts}"/>
+        </copy>
     </target>
     <target name="build-jars-all-noawt-javase" depends="setup-manifestfile">
         <jar manifest="${build.jogl}/tempversion" destfile="${jogl.all-noawt.jar}" filesonly="true">

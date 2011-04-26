@@ -27,12 +27,22 @@
  */
 package com.jogamp.opengl.test.junit.graph.demos;
 
+import javax.media.opengl.FPSCounter;
 import javax.media.opengl.GLCapabilities;
 import javax.media.opengl.GLProfile;
 
 import com.jogamp.graph.curve.Region;
+import com.jogamp.graph.curve.opengl.RenderState;
+import com.jogamp.graph.curve.opengl.Renderer;
+import com.jogamp.graph.curve.opengl.TextRenderer;
+import com.jogamp.graph.geom.opengl.SVertex;
+import com.jogamp.newt.event.KeyAdapter;
+import com.jogamp.newt.event.KeyEvent;
+import com.jogamp.newt.event.WindowAdapter;
+import com.jogamp.newt.event.WindowEvent;
 import com.jogamp.newt.opengl.GLWindow;
 import com.jogamp.opengl.util.Animator;
+import com.jogamp.opengl.util.glsl.ShaderState;
 
 public class GPUTextNewtDemo02 {
     /**
@@ -49,28 +59,45 @@ public class GPUTextNewtDemo02 {
     static final boolean TRACE = false;
     
     public static void main(String[] args) {
-		GLProfile.initSingleton(true);
+        GLProfile.initSingleton(true);
         GLProfile glp = GLProfile.getGL2ES2();
-		
-		GLCapabilities caps = new GLCapabilities(glp);
-		caps.setAlphaBits(4);		
-		System.out.println("Requested: "+caps);
-		
-	    GLWindow window = GLWindow.create(caps);
-		
-		window.setPosition(10, 10);
-        window.setSize(800, 400);		
+        
+        GLCapabilities caps = new GLCapabilities(glp);
+        caps.setAlphaBits(4);        
+        System.out.println("Requested: "+caps);
+        
+        final GLWindow window = GLWindow.create(caps);
+        
+        window.setPosition(10, 10);
+        window.setSize(800, 400);        
         window.setTitle("GPU Text Newt Demo 02 - r2t1 msaa0");
         
-        GPUTextGLListener0A textGLListener = new GPUTextGLListener0A(Region.TWO_PASS, window.getWidth()*3, DEBUG, TRACE);        
+        RenderState rs = Renderer.createRenderState(new ShaderState(), SVertex.factory());
+        GPUTextGLListener0A textGLListener = new GPUTextGLListener0A(rs, Region.TWO_PASS, window.getWidth()*3, DEBUG, TRACE);
+        // ((TextRenderer)textGLListener.getRenderer()).setCacheLimit(32);
         textGLListener.attachInputListenerTo(window);
         window.addGLEventListener(textGLListener);
-
-        window.enablePerfLog(true);
-		window.setVisible(true);
-		// FPSAnimator animator = new FPSAnimator(60);
-        Animator animator = new Animator();		
-		animator.add(window);
-		animator.start();
-	}	
+        
+        window.setUpdateFPSFrames(FPSCounter.DEFAULT_FRAMES_PER_INTERVAL, System.err);        
+        window.setVisible(true);
+        // FPSAnimator animator = new FPSAnimator(60);
+        final Animator animator = new Animator();
+        animator.setUpdateFPSFrames(FPSCounter.DEFAULT_FRAMES_PER_INTERVAL, System.err);
+        animator.add(window);
+        
+        window.addKeyListener(new KeyAdapter() {
+            public void keyPressed(KeyEvent arg0) {
+                if(arg0.getKeyCode() == KeyEvent.VK_F4) {
+                    window.destroy();
+                }
+            }
+        });
+        window.addWindowListener(new WindowAdapter() {
+            public void windowDestroyed(WindowEvent e) {
+                animator.stop();
+            }
+        });
+                
+        animator.start();
+    }    
 }

@@ -152,7 +152,8 @@ public class GLCanvas extends Canvas implements AWTGLAutoDrawable, WindowClosing
   // copy of the cstr args, mainly for recreation
   private GLCapabilitiesImmutable capsReqUser;
   private GLCapabilitiesChooser chooser;
-  private GLContext shareWith;  
+  private GLContext shareWith;
+  private int additionalCtxCreationFlags = 0;  
   private GraphicsDevice device;
 
   private AWTWindowClosingProtocol awtWindowClosingProtocol =
@@ -525,6 +526,7 @@ public class GLCanvas extends Canvas implements AWTGLAutoDrawable, WindowClosing
                            .createGLDrawable(NativeWindowFactory.getNativeWindow(this, awtConfig));
             context = (GLContextImpl) drawable.createContext(shareWith);
             context.setSynchronized(true);
+            context.setContextCreationFlags(additionalCtxCreationFlags);            
         }
 
         // before native peer is valid: X11
@@ -660,6 +662,9 @@ public class GLCanvas extends Canvas implements AWTGLAutoDrawable, WindowClosing
 
   public void setContext(GLContext ctx) {
     context=(GLContextImpl)ctx;
+    if(null != context) {
+        context.setContextCreationFlags(additionalCtxCreationFlags);
+    }
   }
 
   public GLContext getContext() {
@@ -696,6 +701,14 @@ public class GLCanvas extends Canvas implements AWTGLAutoDrawable, WindowClosing
     maybeDoSingleThreadedWorkaround(swapBuffersOnEventDispatchThreadAction, swapBuffersAction);
   }
 
+  public void setContextCreationFlags(int flags) {
+    additionalCtxCreationFlags = flags;
+  }
+      
+  public int getContextCreationFlags() {
+    return additionalCtxCreationFlags;                
+  }
+          
   public GLProfile getGLProfile() {
     return capsReqUser.getGLProfile();
   }
@@ -745,9 +758,9 @@ public class GLCanvas extends Canvas implements AWTGLAutoDrawable, WindowClosing
 
   @Override
   public String toString() {
-	final int dw = (null!=drawable) ? drawable.getWidth() : -1;
-	final int dh = (null!=drawable) ? drawable.getHeight() : -1;
-	
+    final int dw = (null!=drawable) ? drawable.getWidth() : -1;
+    final int dh = (null!=drawable) ? drawable.getHeight() : -1;
+    
     return "AWT-GLCanvas[Realized "+isRealized()+
                           ",\n\t"+((null!=drawable)?drawable.getClass().getName():"null-drawable")+                         
                           ",\n\tRealized "+isRealized()+

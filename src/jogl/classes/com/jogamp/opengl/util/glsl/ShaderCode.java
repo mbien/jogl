@@ -155,9 +155,9 @@ public class ShaderCode {
                 return res;
             }
         }
-        Set binFmts = ShaderUtil.getShaderBinaryFormats(gl);
-        for(Iterator iter=binFmts.iterator(); null==res && iter.hasNext(); ) {
-            int bFmt = ((Integer)(iter.next())).intValue();
+        Set<Integer> binFmts = ShaderUtil.getShaderBinaryFormats(gl);
+        for(Iterator<Integer> iter=binFmts.iterator(); null==res && iter.hasNext(); ) {
+            int bFmt = iter.next().intValue();
             String bFmtPath = getBinarySubPath(bFmt);
             if(null==bFmtPath) continue;
             binFileName = binRoot + '/' + bFmtPath + '/' + basename + "." + getFileSuffix(true, type);
@@ -174,16 +174,8 @@ public class ShaderCode {
 
     /**
      * returns the uniq shader id as an integer
-     * @see #key()
      */
-    public int        id() { return id.intValue(); }
-
-    /**
-     * returns the uniq shader id as an Integer
-     *
-     * @see #id()
-     */
-    public Integer    key() { return id; }
+    public int id() { return id; }
 
     public int        shaderType() { return shaderType; }
     public String     shaderTypeStr() { return shaderTypeStr(shaderType); }
@@ -239,7 +231,7 @@ public class ShaderCode {
         shaderSource=null;
         shaderBinaryFormat=-1;
         shaderType=-1;
-        id=null;
+        id=-1;
     }
 
     public boolean equals(Object obj) {
@@ -250,7 +242,7 @@ public class ShaderCode {
         return false;
     }
     public int hashCode() {
-        return id.intValue();
+        return id;
     }
     public String toString() {
         StringBuffer buf = new StringBuffer("ShaderCode [id="+id+", type="+shaderTypeStr()+", valid="+valid+", shader: ");
@@ -290,26 +282,35 @@ public class ShaderCode {
         }
     }
 
-    public static void readShaderSource(ClassLoader context, String path, URL url, StringBuffer result) {
+    public static void readShaderSource(Class context, URL url, StringBuffer result) {
         try {
+            if(DEBUG_CODE) {
+                System.err.println("ShaderCode.readShaderSource<0>: "+url);
+            }
             BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
             String line = null;
             while ((line = reader.readLine()) != null) {
                 if (line.startsWith("#include ")) {
                     String includeFile = line.substring(9).trim();
+                    URL nextURL = null;
+                    
                     // Try relative path first
-                    String next = Locator.getRelativeOf(path, includeFile);
-                    URL nextURL = Locator.getResource(next, context);
+                    String next = Locator.getRelativeOf(url, includeFile);
+                    if(null != next) {
+                        nextURL = Locator.getResource(context, next);        
+                    }
                     if (nextURL == null) {
                         // Try absolute path
-                        next = includeFile;
-                        nextURL = Locator.getResource(next, context);
+                        nextURL = Locator.getResource(context, includeFile);        
                     }
                     if (nextURL == null) {
                         // Fail
                         throw new FileNotFoundException("Can't find include file " + includeFile);
                     }
-                    readShaderSource(context, next, nextURL, result);
+                    if(DEBUG_CODE) {
+                        System.err.println("ShaderCode.readShaderSource<I>: "+url+" + "+includeFile+" := "+nextURL);
+                    }                    
+                    readShaderSource(context, nextURL, result);
                 } else {
                     result.append(line + "\n");
                 }
@@ -320,16 +321,12 @@ public class ShaderCode {
     }
 
     public static String readShaderSource(Class context, String path) {
-        ClassLoader contextCL = (null!=context)?context.getClassLoader():null;
         URL url = Locator.getResource(context, path);        
         if (url == null) {
             return null;
-        }        
-        File pf = new File(url.getPath());
-        path = pf.getParent() + "/" ;
-        
+        }
         StringBuffer result = new StringBuffer();
-        readShaderSource(contextCL, path, url, result);
+        readShaderSource(context, url, result);
         return result.toString();
     }
 
@@ -354,12 +351,12 @@ public class ShaderCode {
     protected int        shaderBinaryFormat = -1;
     protected IntBuffer  shader = null;
     protected int        shaderType = -1;
-    protected Integer    id = null;
+    protected int        id = -1;
 
     protected boolean valid=false;
 
-    private static synchronized Integer getNextID() {
-        return new Integer(nextID++);
+    private static synchronized int getNextID() {
+        return nextID++;
     }
     protected static int nextID = 1;
 }

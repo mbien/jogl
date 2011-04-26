@@ -13,7 +13,7 @@ public class GLFixedArrayHandler implements GLArrayHandler {
     this.ad = ad;
   }
 
-  protected final void passArrayPointer(GLPointerFunc gl) {
+  private final void passArrayPointer(GLPointerFunc gl) {
     switch(ad.getIndex()) {
         case GLPointerFunc.GL_VERTEX_ARRAY:
             gl.glVertexPointer(ad);
@@ -42,21 +42,21 @@ public class GLFixedArrayHandler implements GLArrayHandler {
         if(ad.isVBO()) {
             // always bind and refresh the VBO mgr, 
             // in case more than one gl*Pointer objects are in use
-            gl.glBindBuffer(GL.GL_ARRAY_BUFFER, ad.getVBOName());
-            if(!ad.isBufferWritten()) {
+            gl.glBindBuffer(ad.getVBOTarget(), ad.getVBOName());
+            if(!ad.isVBOWritten()) {
                 if(null!=buffer) {
-                    gl.glBufferData(GL.GL_ARRAY_BUFFER, buffer.limit() * ad.getComponentSize(), buffer, ad.getBufferUsage());
+                    gl.glBufferData(ad.getVBOTarget(), buffer.limit() * ad.getComponentSize(), buffer, ad.getVBOUsage());
                 }
-                ad.setBufferWritten(true);
+                ad.setVBOWritten(true);
             }
             passArrayPointer(glp);
         } else if(null!=buffer) {
             passArrayPointer(glp);
-            ad.setBufferWritten(true);
+            ad.setVBOWritten(true);
         }
     } else {
         if(ad.isVBO()) {
-            gl.glBindBuffer(GL.GL_ARRAY_BUFFER, 0);
+            gl.glBindBuffer(ad.getVBOTarget(), 0);
         }
         glp.glDisableClientState(ad.getIndex());
     }

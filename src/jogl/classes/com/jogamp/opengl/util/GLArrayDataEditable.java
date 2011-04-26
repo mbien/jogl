@@ -14,21 +14,18 @@ import java.nio.*;
 public interface GLArrayDataEditable extends GLArrayData {
 
     public boolean sealed();
+    
+    public boolean enabled();
 
     /**
-     * The VBO buffer usage, if it's an VBO, otherwise -1
+     * Is the buffer written to the VBO ?
      */
-    public int getBufferUsage();
+    public boolean isVBOWritten();
 
     /**
-     * Is the buffer written to the GPU ?
+     * Marks the buffer written to the VBO
      */
-    public boolean isBufferWritten();
-
-    /**
-     * Marks the buffer written to the GPU
-     */
-    public void setBufferWritten(boolean written);
+    public void setVBOWritten(boolean written);
 
     //
     // Data and GL state modification ..
@@ -39,29 +36,27 @@ public interface GLArrayDataEditable extends GLArrayData {
     public void reset(GL gl);
 
     /**
-     * If seal is true, it
-     * disable write operations to the buffer.
-     * Calls flip, ie limit:=position and position:=0.
-     * Also enables the buffer for OpenGL, and passes the data.
-     *
-     * If seal is false, it
-     * enable write operations continuing
-     * at the buffer position, where you left off at seal(true),
-     * ie position:=limit and limit:=capacity.
-     * Also disables the buffer for OpenGL.
+     * Convenience method calling {@link #seal(boolean)} and {@link #enableBuffer(GL, boolean)}.
      *
      * @see #seal(boolean)
+     * @see #enableBuffer(GL, boolean)
+     * 
      */
     public void seal(GL gl, boolean seal);
 
     /**
-     * Enables/disables the buffer, which implies
-     * the client state, binding the VBO
-     * and transfering the data if not done yet.
+     * <p>Enables/disables the buffer, 
+     * sets the client state, binds the VBO if used
+     * and transfers the data if necessary.</p>
      * 
-     * The above will only be executed,
-     * if the buffer is disabled,
-     * or 'setEnableAlways' was called with 'true'.
+     * <p>The action will only be executed,
+     * if the internal enable state differs, 
+     * or 'setEnableAlways' was called with 'true'.</b>
+     * 
+     * <p>It is up to the user to enable/disable the array properly,
+     * ie in case of multiple data sets for the same vertex attribute (VA).
+     * Meaning in such case usage of one set while expecting another one
+     * to be used for the same VA implies decorating each usage with enable/disable.</p>
      *
      * @see #setEnableAlways(boolean)
      */
@@ -72,8 +67,9 @@ public interface GLArrayDataEditable extends GLArrayData {
      *
      * The default is 'false'
      *
-     * This is usefull when you mix up 
-     * GLArrayData usage with conventional GL array calls.
+     * This is useful when you mix up 
+     * GLArrayData usage with conventional GL array calls
+     * or in case of a buggy GL VBO implementation.
      *
      * @see #enableBuffer(GL, boolean)
      */
@@ -86,16 +82,17 @@ public interface GLArrayDataEditable extends GLArrayData {
     public void reset();
 
     /**
-     * If seal is true, it
-     * disable write operations to the buffer.
-     * Calls flip, ie limit:=position and position:=0.
+     * <p>If <i>seal</i> is true, it
+     * disables write operations to the buffer.
+     * Calls flip, ie limit:=position and position:=0.</p>
      *
-     * If seal is false, it
+     * <p>If <i>seal</i> is false, it
      * enable write operations continuing
      * at the buffer position, where you left off at seal(true),
-     * ie position:=limit and limit:=capacity.
+     * ie position:=limit and limit:=capacity.</p>
      *
-     */
+     * @see #seal(boolean)
+     */    
     public void seal(boolean seal);
 
     public void rewind();

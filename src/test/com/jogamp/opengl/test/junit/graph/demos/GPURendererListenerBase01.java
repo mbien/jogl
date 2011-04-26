@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
+import javax.media.opengl.FPSCounter;
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2ES2;
 import javax.media.opengl.GLAnimatorControl;
@@ -106,6 +107,8 @@ public abstract class GPURendererListenerBase01 implements GLEventListener {
         if(trace) {
             gl = gl.getContext().setGL( GLPipelineFactory.create("javax.media.opengl.Trace", null, gl, new Object[] { System.err } ) ).getGL2ES2();
         }
+        System.err.println("*** "+gl.getContext().getGLVersion());
+        System.err.println("*** GLDebugMessage "+gl.getContext().isGLDebugMessageEnabled());
         gl.glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     }
     
@@ -116,13 +119,14 @@ public abstract class GPURendererListenerBase01 implements GLEventListener {
         renderer.reshapePerspective(gl, 45.0f, width, height, 0.1f, 7000.0f);
         
         dumpMatrix();
+        System.err.println("Reshape: "+renderer.getRenderState());        
     }
     
     public void dispose(GLAutoDrawable drawable) {
         autoDrawable = null;
         GL2ES2 gl = drawable.getGL().getGL2ES2();
-        screenshot.dispose();
-        renderer.dispose(gl);
+        screenshot.dispose(gl);
+        renderer.destroy(gl);
     }    
     
     public void zoom(int v){
@@ -166,8 +170,8 @@ public abstract class GPURendererListenerBase01 implements GLEventListener {
         PrintWriter pw = new PrintWriter(sw);
         pw.printf("-%03dx%03d-Z%04d-T%04d-%s", drawable.getWidth(), drawable.getHeight(), (int)Math.abs(zoom), texSize, objName);
         
-    	String filename = dir + tech + sw +".tga";
-    	screenshot.surface2File(drawable, filename /*, exportAlpha */);
+        String filename = dir + tech + sw +".tga";
+        screenshot.surface2File(drawable, filename /*, exportAlpha */);
     }
     
     int screenshot_num = 0;
@@ -227,7 +231,10 @@ public abstract class GPURendererListenerBase01 implements GLEventListener {
                             gl.setSwapInterval(i);
                             final GLAnimatorControl a = drawable.getAnimator();
                             if( null != a ) {
-                                a.resetCounter();
+                                a.resetFPSCounter();
+                            }
+                            if(drawable instanceof FPSCounter) {
+                                ((FPSCounter)drawable).resetFPSCounter();
                             }
                             System.err.println("Swap Interval: "+i);
                         }

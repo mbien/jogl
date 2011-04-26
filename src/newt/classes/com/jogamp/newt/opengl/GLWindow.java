@@ -34,6 +34,7 @@
 
 package com.jogamp.newt.opengl;
 
+import java.io.PrintStream;
 import java.util.List;
 
 import com.jogamp.common.GlueGenVersion;
@@ -48,6 +49,7 @@ import javax.media.nativewindow.util.Point;
 import javax.media.nativewindow.util.Insets;
 import javax.media.opengl.*;
 
+import jogamp.opengl.FPSCounterImpl;
 import jogamp.opengl.GLDrawableHelper;
 import com.jogamp.opengl.JoglVersion;
 
@@ -64,14 +66,14 @@ import com.jogamp.opengl.JoglVersion;
  * via {@link #invoke(boolean, javax.media.opengl.GLRunnable)} to the OpenGL command stream.<br>
  * <p>
  */
-public class GLWindow implements GLAutoDrawable, Window, NEWTEventConsumer {
+public class GLWindow implements GLAutoDrawable, Window, NEWTEventConsumer, FPSCounter {
     private WindowImpl window;
 
     /**
      * Constructor. Do not call this directly -- use {@link #create()} instead.
      */
     protected GLWindow(Window window) {
-        resetCounter();
+        resetFPSCounter();
         this.window = (WindowImpl) window;
         ((WindowImpl)this.window).setHandleDestroyNotify(false);
         window.addWindowListener(new WindowAdapter() {
@@ -339,25 +341,15 @@ public class GLWindow implements GLAutoDrawable, Window, NEWTEventConsumer {
             }
             context = null;
             drawable = null;
-
+            
+            GLAnimatorControl ctrl = GLWindow.this.getAnimator();
+            if ( null!=ctrl ) {
+                ctrl.remove(GLWindow.this);
+            }            
+            // helper=null; // pending events ..
+            
             if(Window.DEBUG_WINDOW_EVENT || Window.DEBUG_IMPLEMENTATION) {
                 System.err.println("GLWindow.destroy() "+Thread.currentThread()+", fin");
-            }
-        }
-
-        public synchronized void invalidate(boolean unrecoverable) {
-            if(Window.DEBUG_WINDOW_EVENT || Window.DEBUG_IMPLEMENTATION) {
-                String msg = "GLWindow.invalidate("+unrecoverable+") "+Thread.currentThread()+", start";
-                System.err.println(msg);
-                //Exception e1 = new Exception(msg);
-                //e1.printStackTrace();
-            }
-            if(unrecoverable) {
-                GLAnimatorControl ctrl = GLWindow.this.getAnimator();
-                if ( null!=ctrl ) {
-                    ctrl.remove(GLWindow.this);
-                }
-                helper=null;
             }
         }
 
@@ -365,7 +357,7 @@ public class GLWindow implements GLAutoDrawable, Window, NEWTEventConsumer {
             if(Window.DEBUG_WINDOW_EVENT || Window.DEBUG_IMPLEMENTATION) {
                 System.err.println("GLWindow.resetCounter() "+Thread.currentThread());
             }
-            GLWindow.this.resetCounter();
+            GLWindow.this.resetFPSCounter();
         }
 
         public synchronized void setVisibleActionPost(boolean visible, boolean nativeWindowCreated) {
@@ -395,6 +387,7 @@ public class GLWindow implements GLAutoDrawable, Window, NEWTEventConsumer {
                 }
                 drawable.setRealized(true);
                 context = drawable.createContext(sharedContext);
+                context.setContextCreationFlags(additionalCtxCreationFlags);                
             }
             if(Window.DEBUG_WINDOW_EVENT || Window.DEBUG_IMPLEMENTATION) {
                 String msg = "GLWindow.setVisibleActionPost("+visible+", "+nativeWindowCreated+") "+Thread.currentThread()+", fin";
@@ -404,19 +397,20 @@ public class GLWindow implements GLAutoDrawable, Window, NEWTEventConsumer {
             }
         }
         
+        private GLAnimatorControl savedAnimator = null;
+        
         public synchronized boolean pauseRenderingAction() {
             boolean animatorPaused = false;
-            GLAnimatorControl ctrl = GLWindow.this.getAnimator();
-            if ( null!=ctrl ) {
-                animatorPaused = ctrl.pause();
+            savedAnimator = GLWindow.this.getAnimator();
+            if ( null != savedAnimator ) {
+                animatorPaused = savedAnimator.pause();
             }
             return animatorPaused;
         }
 
         public synchronized void resumeRenderingAction() {
-            GLAnimatorControl ctrl = GLWindow.this.getAnimator();
-            if ( null!=ctrl && ctrl.isPaused() ) {
-                ctrl.resume();
+            if ( null != savedAnimator && savedAnimator.isPaused() ) {
+                savedAnimator.resume();
             }
         }
     }
@@ -426,6 +420,7 @@ public class GLWindow implements GLAutoDrawable, Window, NEWTEventConsumer {
     //
 
     private GLContext sharedContext = null;
+    private int additionalCtxCreationFlags = 0;
     private GLDrawableFactory factory;
     private GLDrawable drawable;
     private GLContext context;
@@ -433,9 +428,7 @@ public class GLWindow implements GLAutoDrawable, Window, NEWTEventConsumer {
     // To make reshape events be sent immediately before a display event
     private boolean sendReshape=false;
     private boolean sendDestroy=false;
-    private boolean perfLog = false;
-    private long startTime, curTime, lastCheck;
-    private int  totalFrames, lastFrames;
+    private FPSCounterImpl fpsCounter = new FPSCounterImpl();    
 
     public GLDrawableFactory getFactory() {
         return factory;
@@ -455,6 +448,9 @@ public class GLWindow implements GLAutoDrawable, Window, NEWTEventConsumer {
 
     public void setContext(GLContext newCtx) {
         context = newCtx;
+        if(null != context) {
+            context.setContextCreationFlags(additionalCtxCreationFlags);
+        }        
     }
 
     public GLContext getContext() {
@@ -507,12 +503,6 @@ public class GLWindow implements GLAutoDrawable, Window, NEWTEventConsumer {
         return null;
     }
 
-    public boolean getPerfLogEnabled() { return perfLog; }
-
-    public void enablePerfLog(boolean v) {
-        perfLog = v;
-    }
-
     public void invoke(boolean wait, GLRunnable glRunnable) {
         if(null!=helper) {
             helper.invoke(this, wait, glRunnable);
@@ -551,7 +541,7 @@ public class GLWindow implements GLAutoDrawable, Window, NEWTEventConsumer {
             }
         }
     }
-
+    
     /** This implementation uses a static value */
     public void setAutoSwapBufferMode(boolean onOrOff) {
         if(null!=helper) {
@@ -566,24 +556,26 @@ public class GLWindow implements GLAutoDrawable, Window, NEWTEventConsumer {
         }
         return false;
     }
-
+    
     public void swapBuffers() {
         if(drawable!=null && context != null) {
-            // Lock: Locked Surface/Window by MakeCurrent/Release
-            if (context != GLContext.getCurrent()) {
-                // Assume we should try to make the context current before swapping the buffers
-                helper.invokeGL(drawable, context, swapBuffersAction, initAction);
-            } else {
-                drawable.swapBuffers();
-            }
+            drawable.swapBuffers();
         }
     }
 
+    public void setContextCreationFlags(int flags) {
+        additionalCtxCreationFlags = flags;
+    }
+      
+    public int getContextCreationFlags() {
+        return additionalCtxCreationFlags;                
+    }
+        
     private class InitAction implements Runnable {
         public final void run() {
             // Lock: Locked Surface/Window by MakeCurrent/Release
             helper.init(GLWindow.this);
-            resetCounter();
+            resetFPSCounter();
         }
     }
     private InitAction initAction = new InitAction();
@@ -598,66 +590,50 @@ public class GLWindow implements GLAutoDrawable, Window, NEWTEventConsumer {
 
             helper.display(GLWindow.this);
 
-            curTime = System.currentTimeMillis();
-            totalFrames++;
-
-            if(perfLog) {
-                long dt0, dt1;
-                lastFrames++;
-                dt0 = curTime-lastCheck;
-                if ( dt0 > 5000 ) {
-                    dt1 = curTime-startTime;
-                    System.err.println(dt0/1000 +"s: "+ lastFrames + "f, " + (lastFrames*1000)/dt0 + " fps, "+dt0/lastFrames+" ms/f; "+
-                                       "total: "+ dt1/1000+"s, "+(totalFrames*1000)/dt1 + " fps, "+dt1/totalFrames+" ms/f");
-                    lastCheck=curTime;
-                    lastFrames=0;
-                }
-            }
+            fpsCounter.tickFPS();
         }
     }
     private DisplayAction displayAction = new DisplayAction();
 
-    /** 
-     * @return Time of the first display call in milliseconds.
-     *         This value is reset if becoming visible again or reparenting.
-     */
-    public final long getStartTime()   { 
-        return startTime; 
+    public final void setUpdateFPSFrames(int frames, PrintStream out) {
+        fpsCounter.setUpdateFPSFrames(frames, out);
+    }
+    
+    public final void resetFPSCounter() {
+        fpsCounter.resetFPSCounter();
     }
 
-    /** 
-     * @return Time of the last display call in milliseconds.
-     *         This value is reset if becoming visible again or reparenting.
-     */
-    public final long getCurrentTime() {
-        return curTime;
+    public final int getUpdateFPSFrames() {
+        return fpsCounter.getUpdateFPSFrames();
+    }
+    
+    public final long getFPSStartTime()   {
+        return fpsCounter.getFPSStartTime();
     }
 
-    /** 
-     * @return Duration <code>getCurrentTime() - getStartTime()</code>.
-     *
-     * @see #getStartTime()
-     * @see #getCurrentTime()
-     */
-    public final long getDuration() { 
-        return getCurrentTime()-getStartTime(); 
+    public final long getLastFPSUpdateTime() {
+        return fpsCounter.getLastFPSUpdateTime();
     }
 
-    /** 
-     * @return Number of frames displayed since the first display call, ie <code>getStartTime()</code>.
-     *         This value is reset if becoming visible again or reparenting.
-     */
-    public final int getTotalFrames() { 
-        return totalFrames; 
+    public final long getLastFPSPeriod() {
+        return fpsCounter.getLastFPSPeriod();
+    }
+    
+    public final float getLastFPS() {
+        return fpsCounter.getLastFPS();
+    }
+    
+    public final int getTotalFPSFrames() {
+        return fpsCounter.getTotalFPSFrames();
     }
 
-    /** Reset all counter (startTime, currentTime, frame number) */
-    public final synchronized void resetCounter() {
-        startTime = System.currentTimeMillis(); // overwrite startTime to real init one
-        curTime   = startTime;
-        lastCheck  = startTime;
-        totalFrames = 0; lastFrames = 0;
+    public final long getTotalFPSDuration() {
+        return fpsCounter.getTotalFPSDuration();
     }
+    
+    public final float getTotalFPS() {
+        return fpsCounter.getTotalFPS();
+    }        
 
     private class SwapBuffersAction implements Runnable {
         public final void run() {
@@ -864,10 +840,6 @@ public class GLWindow implements GLAutoDrawable, Window, NEWTEventConsumer {
         return window.surfaceSwap();
     }
 
-    public final void invalidate() {
-        window.invalidate();
-    }
-    
     public final long getWindowHandle() {
         return window.getWindowHandle();
 
@@ -932,7 +904,7 @@ public class GLWindow implements GLAutoDrawable, Window, NEWTEventConsumer {
         });
 
         glWindow.setVisible(true);
-        glWindow.invalidate();
+        glWindow.destroy();
     }
 
 }

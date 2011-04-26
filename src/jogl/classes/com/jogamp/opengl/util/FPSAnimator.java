@@ -116,9 +116,9 @@ public class FPSAnimator extends AnimatorBase {
     }
 
     private void startTask() {
-    	if(null != task) {
-    		return;
-    	}
+        if(null != task) {
+            return;
+        }
         long delay = (long) (1000.0f / (float) fps);
         task = new TimerTask() {
             public void run() {
@@ -130,7 +130,7 @@ public class FPSAnimator extends AnimatorBase {
             }
         };
 
-        resetCounter();
+        fpsCounter.resetFPSCounter();
         shouldRun = true;
 
         if (scheduleAtFixedRate) {
@@ -165,12 +165,12 @@ public class FPSAnimator extends AnimatorBase {
         try {
             shouldRun = false;
             if(null != task) {
-	            task.cancel();
-	            task = null;
+                task.cancel();
+                task = null;
             }
             if(null != timer) {
-	            timer.cancel();
-	            timer = null;
+                timer.cancel();
+                timer = null;
             }
             animThread = null;
             try {
@@ -190,8 +190,8 @@ public class FPSAnimator extends AnimatorBase {
         try {
             shouldRun = false;
             if(null != task) {
-	            task.cancel();
-	            task = null;
+                task.cancel();
+                task = null;
             }
             animThread = null;
             try {

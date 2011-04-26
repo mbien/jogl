@@ -28,11 +28,15 @@
 package com.jogamp.opengl.test.junit.graph.demos;
 
 import java.io.IOException;
+
+import javax.media.opengl.FPSCounter;
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2ES2;
 import javax.media.opengl.GLAnimatorControl;
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLException;
+
+import com.jogamp.graph.curve.opengl.RenderState;
 import com.jogamp.graph.curve.opengl.TextRenderer;
 import com.jogamp.graph.font.Font;
 import com.jogamp.graph.font.FontFactory;
@@ -63,7 +67,7 @@ public abstract class GPUTextRendererListenerBase01 extends GPURendererListenerB
     Font font;
     
     int headType = 0;
-    boolean drawFPS = true;
+    boolean drawFPS = false;
     boolean updateFont = true;
     final int fontSizeFixed = 6;
     int fontSize = 40;
@@ -89,8 +93,8 @@ public abstract class GPUTextRendererListenerBase01 extends GPURendererListenerB
     StringBuffer userString = new StringBuffer();
     boolean userInput = false;
     
-    public GPUTextRendererListenerBase01(Vertex.Factory<? extends Vertex> factory, int mode, boolean debug, boolean trace) {
-        super(TextRenderer.create(factory, mode), debug, trace);        
+    public GPUTextRendererListenerBase01(RenderState rs, int mode, boolean debug, boolean trace) {
+        super(TextRenderer.create(rs, mode), debug, trace);        
         this.font = FontFactory.get(fontSet).getDefault();
         dumpFontNames();
         
@@ -125,21 +129,21 @@ public abstract class GPUTextRendererListenerBase01 extends GPURendererListenerB
     }
 
     public void display(GLAutoDrawable drawable) {
+        final int width = drawable.getWidth();
+        final int height = drawable.getHeight();
         GL2ES2 gl = drawable.getGL().getGL2ES2();
         
         gl.glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // Demo02 needs to have this set here as well .. hmm ?
         gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
 
         final TextRenderer textRenderer = (TextRenderer) getRenderer();
+        textRenderer.reshapeOrtho(null, width, height, 0.1f, 7000.0f);
         
-        final int width = drawable.getWidth();
-        final int height = drawable.getHeight();
         final GLAnimatorControl animator = drawable.getAnimator();
-        final boolean _drawFPS = drawFPS && null != animator && animator.getTotalFrames()>10;
-
-        textRenderer.reshapeOrtho(null, width, height, 0.1f, 7000.0f);                
+        final boolean _drawFPS = drawFPS && null != animator && animator.getTotalFPSFrames()>10;
+        
         if(_drawFPS) {
-            final float fps = ( animator.getTotalFrames() * 1000.0f ) / (float) animator.getDuration() ;
+            final float fps = animator.getTotalFPS();
             final String fpsS = String.valueOf(fps);
             final int fpsSp = fpsS.indexOf('.');
             textRenderer.resetModelview(null);
@@ -237,22 +241,22 @@ public abstract class GPUTextRendererListenerBase01 extends GPURendererListenerB
                 return;
             }
             
-            if(arg0.getKeyCode() == KeyEvent.VK_3){
+            if(arg0.getKeyCode() == KeyEvent.VK_3) {
                 fontIncr(10);
             }
-            else if(arg0.getKeyCode() == KeyEvent.VK_4){
+            else if(arg0.getKeyCode() == KeyEvent.VK_4) {
                 fontIncr(-10);
             }
             else if(arg0.getKeyCode() == KeyEvent.VK_H) {
                 switchHeadBox();
             }  
-            else if(arg0.getKeyCode() == KeyEvent.VK_F){
+            else if(arg0.getKeyCode() == KeyEvent.VK_F) {
                 drawFPS = !drawFPS; 
             }  
             else if(arg0.getKeyCode() == KeyEvent.VK_SPACE) {      
                 nextFontSet();
             }
-            else if(arg0.getKeyCode() == KeyEvent.VK_I){
+            else if(arg0.getKeyCode() == KeyEvent.VK_I) {
                 userInput = true;
                 setIgnoreInput(true);
             }

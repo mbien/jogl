@@ -95,7 +95,7 @@ public class TestScreenMode00NEWT extends UITestCase {
 
     @Test
     public void testScreenModeInfo01() throws InterruptedException {
-    	Capabilities caps = new Capabilities();
+        Capabilities caps = new Capabilities();
         Window window = NewtFactory.createWindow(caps);
         window.setSize(width, height);
         window.setVisible(true);
@@ -120,7 +120,7 @@ public class TestScreenMode00NEWT extends UITestCase {
             System.err.println("Your platform has no ScreenMode change support, sorry");
         }
 
-        window.invalidate();
+        window.destroy();
 
         Assert.assertEquals(false,window.isVisible());
         Assert.assertEquals(false,window.isNativeValid());

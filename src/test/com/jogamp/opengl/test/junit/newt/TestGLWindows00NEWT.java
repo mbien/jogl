@@ -35,12 +35,10 @@ import org.junit.Test;
 import javax.media.opengl.*;
 
 import com.jogamp.newt.*;
-import com.jogamp.newt.event.*;
 import com.jogamp.newt.opengl.*;
 import java.io.IOException;
 
 import com.jogamp.opengl.test.junit.util.UITestCase;
-import com.jogamp.opengl.test.junit.util.MiscUtils;
 import com.jogamp.opengl.test.junit.jogl.demos.gl2.gears.Gears;
 import javax.media.nativewindow.AbstractGraphicsDevice;
 
@@ -73,6 +71,7 @@ public class TestGLWindows00NEWT extends UITestCase {
             glWindow = GLWindow.create(caps);
             Assert.assertNotNull(glWindow);
         }
+        glWindow.setUpdateFPSFrames(1, null);        
 
         GLEventListener demo = new Gears();
         glWindow.addGLEventListener(demo);
@@ -87,9 +86,8 @@ public class TestGLWindows00NEWT extends UITestCase {
 
     static void destroyWindow(GLWindow glWindow) {
         if(null!=glWindow) {
-            glWindow.invalidate();
+            glWindow.destroy();
             Assert.assertEquals(false,glWindow.isNativeValid());
-            Assert.assertEquals(false,glWindow.isValid());
         }
     }
 

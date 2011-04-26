@@ -28,40 +28,65 @@
 package com.jogamp.opengl.test.junit.graph.demos;
 
 
+import javax.media.opengl.FPSCounter;
 import javax.media.opengl.GLCapabilities;
 import javax.media.opengl.GLProfile;
 
 import com.jogamp.graph.curve.Region;
+import com.jogamp.graph.curve.opengl.RenderState;
+import com.jogamp.graph.curve.opengl.Renderer;
+import com.jogamp.graph.geom.opengl.SVertex;
+import com.jogamp.newt.event.KeyAdapter;
+import com.jogamp.newt.event.KeyEvent;
+import com.jogamp.newt.event.WindowAdapter;
+import com.jogamp.newt.event.WindowEvent;
 import com.jogamp.newt.opengl.GLWindow;
 import com.jogamp.opengl.util.Animator;
+import com.jogamp.opengl.util.glsl.ShaderState;
 
 public class GPUTextNewtDemo01 {
     static final boolean DEBUG = false;
     static final boolean TRACE = false;
     
-	public static void main(String[] args) {
-		GLProfile.initSingleton(true);
-		GLProfile glp = GLProfile.getGL2ES2();
-		GLCapabilities caps = new GLCapabilities(glp);
-		caps.setAlphaBits(4);
-	    caps.setSampleBuffers(true);
-		caps.setNumSamples(4); // 2 samples is not enough ..
-		System.out.println("Requested: "+caps);
-		
-		GLWindow window = GLWindow.create(caps);		
-		window.setPosition(10, 10);
-		window.setSize(800, 400);
-		window.setTitle("GPU Text Newt Demo 01 - r2t0 msaa1");
-		
-		GPUTextGLListener0A textGLListener = new GPUTextGLListener0A(Region.SINGLE_PASS, 0, DEBUG, TRACE);
-		textGLListener.attachInputListenerTo(window);
-		window.addGLEventListener(textGLListener);
-
-		window.enablePerfLog(true);		
-		window.setVisible(true);
-		// FPSAnimator animator = new FPSAnimator(10);
-		Animator animator = new Animator();
-		animator.add(window);
-		animator.start();
-	}	
+    public static void main(String[] args) {
+        GLProfile.initSingleton(true);
+        GLProfile glp = GLProfile.getGL2ES2();
+        GLCapabilities caps = new GLCapabilities(glp);
+        caps.setAlphaBits(4);
+        caps.setSampleBuffers(true);
+        caps.setNumSamples(4); // 2 samples is not enough ..
+        System.out.println("Requested: "+caps);
+        
+        final GLWindow window = GLWindow.create(caps);        
+        window.setPosition(10, 10);
+        window.setSize(800, 400);
+        window.setTitle("GPU Text Newt Demo 01 - r2t0 msaa1");
+        
+        final RenderState rs = Renderer.createRenderState(new ShaderState(), SVertex.factory());
+        GPUTextGLListener0A textGLListener = new GPUTextGLListener0A(rs, Region.SINGLE_PASS, 0, DEBUG, TRACE);
+        textGLListener.attachInputListenerTo(window);
+        window.addGLEventListener(textGLListener);
+        window.setUpdateFPSFrames(FPSCounter.DEFAULT_FRAMES_PER_INTERVAL, System.err);        
+        
+        final Animator animator = new Animator();
+        animator.setUpdateFPSFrames(FPSCounter.DEFAULT_FRAMES_PER_INTERVAL, System.err);
+        animator.add(window);
+        
+        window.addKeyListener(new KeyAdapter() {
+            public void keyPressed(KeyEvent arg0) {
+                if(arg0.getKeyCode() == KeyEvent.VK_F4) {
+                    window.destroy();
+                }
+            }
+        });
+        window.addWindowListener(new WindowAdapter() {
+            public void windowDestroyed(WindowEvent e) {
+                animator.stop();
+            }
+        });
+        
+        window.setVisible(true);
+        // FPSAnimator animator = new FPSAnimator(10);
+        animator.start();
+    }    
 }

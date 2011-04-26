@@ -56,8 +56,8 @@ import jogamp.nativewindow.x11.X11Util;
 public abstract class X11GLXContext extends GLContextImpl {
   protected static final boolean TRACE_CONTEXT_CURRENT = false; // true;
 
-  private static final Map/*<String, String>*/ functionNameMap;
-  private static final Map/*<String, String>*/ extensionNameMap;
+  private static final Map<String, String> functionNameMap;
+  private static final Map<String, String> extensionNameMap;
   private VersionNumber glXVersion;
   private boolean glXVersionOneThreeCapable;
   private boolean glXQueryExtensionsStringInitialized;
@@ -74,11 +74,11 @@ public abstract class X11GLXContext extends GLContextImpl {
   protected boolean isDirect;
 
   static {
-    functionNameMap = new HashMap();
+    functionNameMap = new HashMap<String, String>();
     functionNameMap.put("glAllocateMemoryNV", "glXAllocateMemoryNV");
     functionNameMap.put("glFreeMemoryNV", "glXFreeMemoryNV");
 
-    extensionNameMap = new HashMap();
+    extensionNameMap = new HashMap<String, String>();
     extensionNameMap.put("GL_ARB_pbuffer",      "GLX_SGIX_pbuffer");
     extensionNameMap.put("GL_ARB_pixel_format", "GLX_SGIX_pbuffer"); // good enough
   }
@@ -118,9 +118,9 @@ public abstract class X11GLXContext extends GLContextImpl {
     return glXExt;
   }
 
-  protected Map/*<String, String>*/ getFunctionNameMap() { return functionNameMap; }
+  protected Map<String, String> getFunctionNameMap() { return functionNameMap; }
 
-  protected Map/*<String, String>*/ getExtensionNameMap() { return extensionNameMap; }
+  protected Map<String, String> getExtensionNameMap() { return extensionNameMap; }
 
   public final boolean isGLXVersionGreaterEqualOneThree() {
     if(null == glXVersion) {
@@ -297,7 +297,6 @@ public abstract class X11GLXContext extends GLContextImpl {
 
     GLCapabilitiesImmutable glCaps = (GLCapabilitiesImmutable) config.getChosenCapabilities();
     GLProfile glp = glCaps.getGLProfile();
-    isVendorATI = factory.isGLXVendorATI(device);
 
     if(config.getFBConfigID()<0) {
         // not able to use FBConfig
@@ -319,14 +318,11 @@ public abstract class X11GLXContext extends GLContextImpl {
         return true;
     }
 
-    int minor[] = new int[1];
-    int major[] = new int[1];
-    int ctp[] = new int[1];
     boolean createContextARBTried = false;
 
     // utilize the shared context's GLXExt in case it was using the ARB method and it already exists
     if(null!=sharedContext && sharedContext.isCreatedWithARBMethod()) {
-        contextHandle = createContextARB(share, direct, major, minor, ctp);
+        contextHandle = createContextARB(share, direct);
         createContextARBTried = true;
         if (DEBUG && 0!=contextHandle) {
             System.err.println(getThreadName() + ": createContextImpl: OK (ARB, using sharedContext) share "+share);
@@ -352,7 +348,7 @@ public abstract class X11GLXContext extends GLContextImpl {
             if ( isCreateContextAttribsARBAvailable &&
                  isExtensionAvailable("GLX_ARB_create_context") ) {
                 // initial ARB context creation
-                contextHandle = createContextARB(share, direct, major, minor, ctp);
+                contextHandle = createContextARB(share, direct);
                 createContextARBTried=true;
                 if (DEBUG) {
                     if(0!=contextHandle) {
@@ -379,10 +375,10 @@ public abstract class X11GLXContext extends GLContextImpl {
         if(glp.isGL3()) {
           glXMakeContextCurrent(display, 0, 0, 0);
           GLX.glXDestroyContext(display, temp_ctx);
-          throw new GLException("X11GLXContext.createContextImpl failed, but context > GL2 requested "+getGLVersion(major[0], minor[0], ctp[0], "@creation")+", ");
+          throw new GLException("X11GLXContext.createContextImpl failed, but context > GL2 requested "+getGLVersion()+", ");
         }
         if(DEBUG) {
-          System.err.println("X11GLXContext.createContextImpl failed, fall back to !ARB context "+getGLVersion(major[0], minor[0], ctp[0], "@creation"));
+          System.err.println("X11GLXContext.createContextImpl failed, fall back to !ARB context "+getGLVersion());
         }
 
         // continue with temp context for GL <= 3.0
@@ -472,12 +468,12 @@ public abstract class X11GLXContext extends GLContextImpl {
     glXQueryExtensionsStringInitialized = false;
     glXQueryExtensionsStringAvailable = false;
 
-    GLXExtProcAddressTable table = null;
+    ProcAddressTable table = null;
     synchronized(mappedContextTypeObjectLock) {
-        table = (GLXExtProcAddressTable) mappedGLXProcAddress.get( key );
+        table = mappedGLXProcAddress.get( key );
     }
     if(null != table) {
-        glXExtProcAddressTable = table;
+        glXExtProcAddressTable = (GLXExtProcAddressTable) table;
         if(DEBUG) {
             System.err.println(getThreadName() + ": !!! GLContext GLX ProcAddressTable reusing key("+key+") -> "+table.hashCode());
         }
@@ -581,7 +577,4 @@ public abstract class X11GLXContext extends GLContextImpl {
   //----------------------------------------------------------------------
   // Internals only below this point
   //
-
-  private boolean isVendorATI = false;
-
 }

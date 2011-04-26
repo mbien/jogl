@@ -109,8 +109,9 @@ public class TestListenerCom01AWT extends UITestCase {
         frame.setVisible(true);
 
         Animator animator1 = new Animator(glWindow);
+        animator1.setUpdateFPSFrames(1, null);        
         animator1.start();
-        while(animator1.isAnimating() && animator1.getDuration()<durationPerTest) {
+        while(animator1.isAnimating() && animator1.getTotalFPSDuration()<durationPerTest) {
             Thread.sleep(100);
             width+=10; height+=10;
             frame.setSize(width, height);
@@ -119,7 +120,7 @@ public class TestListenerCom01AWT extends UITestCase {
         Assert.assertEquals(false, animator1.isAnimating());
 
         frame.dispose();
-        glWindow.invalidate();
+        glWindow.destroy();
     }
 
     public static void setDemoFields(GLEventListener demo, GLWindow glWindow, boolean debug) {

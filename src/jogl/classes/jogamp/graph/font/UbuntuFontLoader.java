@@ -58,9 +58,7 @@ public class UbuntuFontLoader implements FontSet {
 
     };
         
-    final static String relPath = "fonts/ubuntu/" ;
-    // debug final static String relPath = "/usr/local/projects/JOGL/jogl/src/jogl/classes/jogamp/graph/font/fonts/ubuntu/" ;
-    
+    final static String relPath = "fonts/ubuntu/" ;    
     
     private UbuntuFontLoader() {
     }
@@ -76,8 +74,8 @@ public class UbuntuFontLoader implements FontSet {
         return get(FAMILY_REGULAR, 0) ; // Sans Serif Regular 
     }
     
-	public Font get(int family, int style)
-	{
+    public Font get(int family, int style)
+    {
         Font font = (Font)fontMap.get( ( family << 8 ) | style );
         if (font != null) {
             return font;
@@ -119,7 +117,7 @@ public class UbuntuFontLoader implements FontSet {
 
         return font;
     }
-		
+        
     Font abspath(String fname, int family, int style) {
         final String err = "Problem loading font "+fname+", stream "+relPath+fname;
         try {
@@ -136,5 +134,5 @@ public class UbuntuFontLoader implements FontSet {
         } catch(IOException ioe) {
             throw new GLException(err, ioe);            
         }
-    }       	
+    }           
 }
